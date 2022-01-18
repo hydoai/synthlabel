@@ -1,6 +1,8 @@
 # data directories
 /input_videos
+/finished
 /output
+/COCO
 
 # =======Github Python Essential gitignore==========
 # Byte-compiled / optimized / DLL files

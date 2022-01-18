@@ -59,8 +59,10 @@ mock_output = {
 def read_annotations(path):
     # build dictionary of all detections in this video
     detections = {}
+    filename_stem = None
     for detection_txt in (path/'labels').glob('*.txt'):
         lines = []
+        filename_stem = detection_txt.stem.split('_')[0]
         with open(detection_txt, 'r') as file:
             for line in file:
                 line = line.strip().split(',')
@@ -78,7 +80,7 @@ def read_annotations(path):
 
                 })
         detections.update({int(frame): lines})
-    return detections
+    return detections, filename_stem
 
 def re_key_dict(d):
     # reorganize detections dictionary with 'track_id' as key
@@ -126,26 +128,26 @@ def un_re_key_dict(d):
             detections_by_frame[frame].append(det)
     return detections_by_frame
 
-def write_dict_to_txt(d, path):
+def write_dict_to_txt(d, path, filename_stem):
     # create 'voted_labels' directory if it doesn't exist
     if not (path/'voted_labels').exists():
         (path/'voted_labels').mkdir()
 
     for frame, dets_in_frame in d.items():
-        with open(path/'voted_labels'/f'{frame}.txt', 'w') as file:
+        with open(path/'voted_labels'/f'{filename_stem}_{frame}.txt', 'w') as file:
             for det in dets_in_frame:
                 file.write(f'{det["frame"]},{det["track_id"]},{det["x"]},{det["y"]},{det["w"]},{det["h"]},{det["confidence"]},{det["class_id"]}\n')
 
 def main(args):
     for subdir in Path(args.dir).glob('*'):
-        detections = read_annotations(subdir)
+        detections, filename_stem = read_annotations(subdir)
         re_keyed_detections = re_key_dict(detections)
         voted_detections = vote_class_by_area(re_keyed_detections)
         un_re_keyed_detections = un_re_key_dict(voted_detections)
         if args.dry_run:
             print(un_re_keyed_detections)
         else:
-            write_dict_to_txt(un_re_keyed_detections, subdir)
+            write_dict_to_txt(un_re_keyed_detections, subdir, filename_stem)
 
 def test_main():
     detections = mock_input
