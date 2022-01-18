@@ -14,7 +14,7 @@ VIDEO_DATA
 **Record new videos, then move them into `RAW`.**
 
 **Rename videos to a standardized format:**
-
+This renaming script calculates a checksum for the whole file, then turns hash into a pronounceable 'proquint'. Therefore, the same file will always be re-named the same filename by this script.
 ```
 python3 video_renamer.py --dir <VIDEO_DATA/RAW>
 ```
