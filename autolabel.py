@@ -206,7 +206,7 @@ def run():
                             cv2.imwrite(str(annotated_img_save_dir/filename), im0)          
                     
                     tqdm.write(f'{s} Done. ({t3-t2:.3f} seconds)')
-    pbar.update(1)
+        pbar.update(1)
 
 if __name__ == "__main__":
     run()
