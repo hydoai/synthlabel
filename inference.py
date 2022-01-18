@@ -59,7 +59,6 @@ def run():
 
     # Saving synthetic labels & images
     SAVE_LABELS = True
-    LABEL_CLS = {0,1,2,3,5,7,80} # only generate synthetic image-label sets for these categories
     SKIP_FRAMES = 3 # wait at least this many frames beofre checking if a frame contains objects in 'LABEL_CLS' categories. Recommended < 3, because tracking for retrolabeling requires decent temporal resolution.
     SAVE_ANNOTATED_IMGS = True
     SAVE_CLEAN_IMGS = True
@@ -67,9 +66,6 @@ def run():
     # Show output
     LINE_THICKNESS = 3 # bounding line thickness
     VIEW_IMG = False # show results on screen
-
-
-
     
     # load models
     device = select_device(DEVICE)
@@ -203,13 +199,6 @@ def run():
                     filename = Path(random_video_id + '_' + str(int(frame))+'.jpg')
                     cv2.imwrite(str(annotated_img_save_dir/filename), im0)          
                 
-
-
-
-
-
-
-
 
 if __name__ == "__main__":
     run()
