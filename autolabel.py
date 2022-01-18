@@ -60,7 +60,7 @@ def run():
     # Saving synthetic labels & images
     SAVE_LABELS = True
     SKIP_FRAMES = 3 # wait at least this many frames beofre checking if a frame contains objects in 'LABEL_CLS' categories. Recommended < 3, because tracking for retrolabeling requires decent temporal resolution.
-    SAVE_ANNOTATED_IMGS = True
+    SAVE_ANNOTATED_IMGS = False # True for debugging
     SAVE_CLEAN_IMGS = True
 
     # Show output
