@@ -43,6 +43,8 @@ python3 validate_autolabels.py --dir=output
 
 ## Retrolabeling Step
 
+![](assets/retrolabeling.png)
+
 Once all the labels have been produced and saved, the retrolabeling step goes through the labels (not images) to refine the categories.
 
 ```
