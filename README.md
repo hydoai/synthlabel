@@ -31,7 +31,7 @@ python3 autolabel.py --dir=input_videos
 
 Category fusion:
 
-![](assets/person_bicycle_cyclist.png)
+![](assets/category-fusion.png)
 
 ## Validate Output
 
