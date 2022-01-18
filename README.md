@@ -29,6 +29,10 @@ python3 autolabel.py --dir=input_videos
 + IOU tracker tracks objects
 + Category Fusion merges object categories
 
+Category fusion:
+
+![](assets/person_bicycle_cyclist.png)
+
 ## Validate Output
 
 Sometimes, empty or corrupt files come out of the inference loop. Probably high energy cosmic rays or something. Fix it with this.
