@@ -59,7 +59,7 @@ def run():
 
     # Saving synthetic labels & images
     SAVE_LABELS = True
-    LABEL_CLS = [0,1,2,3,5,7,80] # only generate synthetic image-label sets for these categories
+    LABEL_CLS = {0,1,2,3,5,7,80} # only generate synthetic image-label sets for these categories
     SKIP_FRAMES = 3 # wait at least this many frames beofre checking if a frame contains objects in 'LABEL_CLS' categories. Recommended < 3, because tracking for retrolabeling requires decent temporal resolution.
     SAVE_ANNOTATED_IMGS = True
     SAVE_CLEAN_IMGS = True
@@ -129,7 +129,7 @@ def run():
         t3 = time_sync()
         dt[1] += t3 - t2
 
-        pred = non_max_suppression(pred, conf_thres=CONF_THRES, iou_thres=NMS_THRES, max_det=MAX_DET)
+        pred = non_max_suppression(pred, conf_thres=CONF_THRES, iou_thres=NMS_THRES, classes=CLASSES, agnostic=AGNOSTIC_NMS, max_det=MAX_DET)
         dt[2] += time_sync() - t3
 
         # merge "bicycle" and "person" classes into new "cyclist" class
