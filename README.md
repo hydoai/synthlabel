@@ -1,6 +1,24 @@
 # synthlabel
 Generate accurate synthetic object detection labeled datasets, incorporating optional retroactive labeling and/or category fusion.
 
+## Ingest Videos
+
+All the input video is organized as:
+```
+VIDEO_DATA
+├── front_autolabeled: copy outputs of autolabel.py to here
+├── front_groundtruth: 
+├── front_video: renamed videos (moved from RAW)
+└── RAW: videos straight from camera (to be moved to 'front_video')
+```
+**Record new videos, then move them into `RAW`.**
+
+**Rename videos to a standardized format:**
+
+```
+python3 video_renamer.py --dir <VIDEO_DATA>
+```
+
 ## Inference Loop
 
 ```
