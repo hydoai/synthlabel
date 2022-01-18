@@ -128,6 +128,7 @@ def run():
         pred = non_max_suppression(pred, conf_thres=CONF_THRES, iou_thres=NMS_THRES, classes=CLASSES, agnostic=AGNOSTIC_NMS, max_det=MAX_DET)
         dt[2] += time_sync() - t3
 
+
         # merge "bicycle" and "person" classes into new "cyclist" class
         pred_list = []
         for pred_tensor in pred:
@@ -176,29 +177,29 @@ def run():
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1,4)) / gn).view(-1).tolist() # normalized xywh
                         line = (frame, track_id, *xywh, conf, cls)
                         with open(txt_path + '.txt', 'a') as f:
-                            f.write(('%g,' * len(line)).rstrip() % line + '\n')
+                            line_to_write = (('%g, ' * len(line)).rstrip() % line + '\n')
+                            line_to_write = line_to_write[:-1]
+                            f.write(line_to_write)
+                            #f.write(('%g,' * len(line)).rstrip() % line + '\n')
                     if SAVE_ANNOTATED_IMGS or VIEW_IMG:
                         c = int(cls)
                         label = f"{cls_names[c]} {track_id}"
                         annotator.box_label(xyxy, label, color=colors(c, True))
+                if len(tracked_det):
+                    im0 = annotator.result()
+                    if VIEW_IMG:
+                        cv2.imshow(str(p), im0)
+                        cv2.waitKey(1)
+                    
+                    if SAVE_CLEAN_IMGS:
+                        filename = Path(random_video_id + '_' + str(int(frame))+'.jpg')
+                        cv2.imwrite(str(clean_img_save_dir/filename), imc)          
+
+                    if SAVE_ANNOTATED_IMGS:
+                        filename = Path(random_video_id + '_' + str(int(frame))+'.jpg')
+                        cv2.imwrite(str(annotated_img_save_dir/filename), im0)          
+                
                 LOGGER.info(f'{s} Done. ({t3-t2:.3f} seconds)')
-
-                # Stream results
-
-
-                im0 = annotator.result()
-                if VIEW_IMG:
-                    cv2.imshow(str(p), im0)
-                    cv2.waitKey(1)
-                
-                if SAVE_CLEAN_IMGS:
-                    filename = Path(random_video_id + '_' + str(int(frame))+'.jpg')
-                    cv2.imwrite(str(clean_img_save_dir/filename), imc)          
-
-                if SAVE_ANNOTATED_IMGS:
-                    filename = Path(random_video_id + '_' + str(int(frame))+'.jpg')
-                    cv2.imwrite(str(annotated_img_save_dir/filename), im0)          
-                
 
 if __name__ == "__main__":
     run()
