@@ -16,7 +16,7 @@ VIDEO_DATA
 **Rename videos to a standardized format:**
 
 ```
-python3 video_renamer.py --dir <VIDEO_DATA>
+python3 video_renamer.py --dir <VIDEO_DATA/RAW>
 ```
 
 ## Inference Loop
