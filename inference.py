@@ -54,13 +54,13 @@ def run():
     # Numbers are from 80 class COCO dataset (from 0 to 79)
     CLASSES = [0,1,2,3,5,7] # filter by class (None = all)
     MERGE_CLS = {
-        (1,0,'cyclist') # (main_box_category_id, sub_box_category_id, merged_category name)
+        (1,0,'cyclist',80) # (main_box_category_id, sub_box_category_id, merged_category name, merged_category_id)
     } # these new classes will be given category id from 80 and above
 
     # Saving synthetic labels & images
     SAVE_LABELS = True
     LABEL_CLS = [0,1,2,3,5,7,80] # only generate synthetic image-label sets for these categories
-    SKIP_FRAMES = 60 # wait at least this many frames beofre checking if a frame contains objects in 'LABEL_CLS' categories
+    SKIP_FRAMES = 3 # wait at least this many frames beofre checking if a frame contains objects in 'LABEL_CLS' categories. Recommended < 3, because tracking for retrolabeling requires decent temporal resolution.
     SAVE_ANNOTATED_IMGS = True
     SAVE_CLEAN_IMGS = True
 
@@ -69,12 +69,18 @@ def run():
     VIEW_IMG = False # show results on screen
 
 
+
     
     # load models
     device = select_device(DEVICE)
     model = DetectMultiBackend(WEIGHTS, device=device, dnn=False, data=None)
     stride, names, pt, jit, onnx, engine = model.stride, model.names, model.pt, model.jit, model.onnx, model.engine
     imgsz = check_img_size(IMGSZ, s=stride)  # check image size
+
+    # create new categories from merge list
+    cls_names = names
+    for merge in MERGE_CLS:
+        cls_names.append(merge[2])
 
     # Half
     FP16 &= (pt or jit or onnx or engine) and device.type != 'cpu'  # FP16 supported on limited backends with CUDA
@@ -126,6 +132,12 @@ def run():
         pred = non_max_suppression(pred, conf_thres=CONF_THRES, iou_thres=NMS_THRES, max_det=MAX_DET)
         dt[2] += time_sync() - t3
 
+        # merge "bicycle" and "person" classes into new "cyclist" class
+        pred_list = []
+        for pred_tensor in pred:
+            pred_list.append(bbox_merge(pred_tensor, merge[0], merge[1], merge[3], min_iou=0.1))
+        pred = pred_list
+
         # Process predictions
         for i, det in enumerate(pred): # per image
             seen += 1
@@ -133,7 +145,7 @@ def run():
             txt_path = str(save_dir/'labels'/random_video_id) + f"_{frame}"
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             imc = copy.deepcopy(im0)
-            annotator = Annotator(im0, line_width=LINE_THICKNESS, example=str(names))
+            annotator = Annotator(im0, line_width=LINE_THICKNESS, example=str(cls_names))
             if len(det):
                 # rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
@@ -171,7 +183,7 @@ def run():
                             f.write(('%g,' * len(line)).rstrip() % line + '\n')
                     if SAVE_ANNOTATED_IMGS or VIEW_IMG:
                         c = int(cls)
-                        label = f"{names[c]} {track_id}"
+                        label = f"{cls_names[c]} {track_id}"
                         annotator.box_label(xyxy, label, color=colors(c, True))
                 LOGGER.info(f'{s} Done. ({t3-t2:.3f} seconds)')
 
