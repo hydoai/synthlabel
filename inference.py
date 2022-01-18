@@ -92,7 +92,10 @@ def run():
     # Run inference
     model.warmup(imgsz = (1,3,*imgsz), half=FP16) # run once to warmup
     dt, seen = [0.0, 0.0, 0.0], 0
-    for path, im, im0s, vid_cap, s in dataset:
+    for frame_index, (path, im, im0s, vid_cap, s) in enumerate(dataset):
+        if frame_index % SKIP_FRAMES != 0:
+            continue
+
         t1 = time_sync()
         im = torch.from_numpy(im).to(device)
         im = im.half() if FP16 else im.float()
