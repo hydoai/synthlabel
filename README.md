@@ -1,15 +1,17 @@
 # synthlabel
 Generate accurate synthetic object detection labeled datasets, incorporating optional retroactive labeling and/or category fusion.
 
-## Architecture
+## Inference Loop
 
-### Inference Loop
+```
+python3 inference.py --dir=<path_to_dir_containing_input_videos>
+```
 
 + YOLOv5 detects objects
 + IOU tracker tracks objects
 + Category Fusion merges object categories
 
-### Retrolabeling Step
+## Retrolabeling Step
 
 Once all the labels have been produced and saved, the retrolabeling step goes through the labels (not images) to refine the categories.
 

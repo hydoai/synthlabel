@@ -1,3 +1,8 @@
+# data directories
+/input_videos
+/output
+
+# =======Github Python Essential gitignore==========
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
