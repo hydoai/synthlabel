@@ -1,7 +1,7 @@
 # synthlabel
 Generate accurate synthetic object detection labeled datasets, incorporating optional retroactive labeling and/or category fusion.
 
-![](assets/hydo-wall-animated.gif)
+![](assets/dataset-wall-smaller.gif)
 
 ## Ingest Videos
 
