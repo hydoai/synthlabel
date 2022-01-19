@@ -188,128 +188,131 @@ def run():
     dt, seen = [0.0, 0.0, 0.0], 0
     with tqdm(total=len(dataset)) as pbar_num_files:
         old_num_file = 0
-        for frame_index, (path, im, im0s, vid_cap, s, count_vid, total_vids, count_frame, total_frames) in tqdm(enumerate(dataset), total=dataset.frames_in_vid()):
-            # tqdm update
-            if count_vid != old_num_file:                 
-                old_num_file = count_vid
-                pbar_num_files.set_description(f'Video {count_vid+1}/{total_vids}')
-                pbar_num_files.update(1)
+        with tqdm(total=dataset.frames_in_vid()) as pbar_frames:
+            for frame_index, (path, im, im0s, vid_cap, s, count_vid, total_vids, count_frame, total_frames) in enumerate(dataset):
+                # if moving onto next video
+                if count_vid != old_num_file:                 
+                    pbar_frames.reset()
+                    old_num_file = count_vid
+                    pbar_num_files.set_description(f'Video {count_vid+1}/{total_vids}')
+                    pbar_num_files.update(1)
+                pbar_frames.update(1)
 
-            if frame_index % SKIP_FRAMES != 0:
-                continue
-
-            t1 = time_sync()
-            im = torch.from_numpy(im).to(device)
-            im = im.half() if FP16 else im.float()
-            im /= 255
-            if len(im.shape) == 3:
-                im = im[None] # expand for batch dim
-            t2 = time_sync()
-            dt[0] += t2 - t1
-
-
-            # directories
-            source_path = Path(path)
-            video_filename = source_path.stem
-            NAME = video_filename
-
-            save_dir = increment_path(Path(PROJECT) / NAME, exist_ok=True)
-            (save_dir/'labels').mkdir(parents =True, exist_ok=True)
-            clean_img_save_dir = save_dir/'clean_images'
-            (save_dir/'clean_images').mkdir(parents =True, exist_ok=True)
-            annotated_img_save_dir = save_dir/'annotated_images'
-            (save_dir/'annotated_images').mkdir(parents =True, exist_ok=True)
-
-            # inference
-            pred = model(im, augment=False, visualize=False)
-            t3 = time_sync()
-            dt[1] += t3 - t2
-
-            pred = non_max_suppression(pred, conf_thres=CONF_THRES, iou_thres=NMS_THRES, classes=CLASSES, agnostic=AGNOSTIC_NMS, max_det=MAX_DET)
-            dt[2] += time_sync() - t3
-
-
-            # merge "bicycle" and "person" classes into new "cyclist" class
-            pred_list = []
-            for pred_tensor in pred:
-                pred_list.append(bbox_merge(pred_tensor, merge[0], merge[1], merge[3], min_iou=0.1))
-            pred = pred_list
-
-            if SAVE_ONLY_IF_FRAME_CONTAINS_CLASS is not None and len(SAVE_ONLY_IF_FRAME_CONTAINS_CLASS) > 0:
-                if set(SAVE_ONLY_IF_FRAME_CONTAINS_CLASS).isdisjoint(set(pred[0][:, -1].cpu().numpy())):
-                    tqdm.write(f"skipping: classes in frame: {pred[0][:,-1].cpu().numpy().tolist()}")
+                if frame_index % SKIP_FRAMES != 0:
                     continue
 
-            # Process predictions
-            for i, det in enumerate(pred): # per image
-                seen += 1
-                if seen % SKIP_SAVE_FRAMES != 0:
-                    continue
-                p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
-                txt_path = str(save_dir/'labels'/random_video_id) + f"_{frame}"
-                gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
-                imc = copy.deepcopy(im0)
-                annotator = Annotator(im0, line_width=LINE_THICKNESS, example=str(cls_names))
-                if len(det):
-                    # rescale boxes from img_size to im0 size
-                    det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
+                t1 = time_sync()
+                im = torch.from_numpy(im).to(device)
+                im = im.half() if FP16 else im.float()
+                im /= 255
+                if len(im.shape) == 3:
+                    im = im[None] # expand for batch dim
+                t2 = time_sync()
+                dt[0] += t2 - t1
 
-                    det_list = []
-                    for obj in det:
-                        obj_np = obj.cpu().numpy()
-                        xyxy = obj_np[:4].tolist()
-                        conf = obj_np[4]
-                        cls = int(obj_np[5])
-                        det_list.append({
-                            'bbox': xyxy,
-                            'score': conf,
-                            'class': cls,
-                        })
 
-                    iou_output = iou_tracker.update(det_list)
-                    tracked_det = torch.zeros((len(iou_output), 7))
-                    for i, track in enumerate(iou_output):
-                        tracked_det[i][0:4] = torch.tensor(track['bboxes'])
-                        tracked_det[i][4] = det[i][4]
-                        tracked_det[i][5] = torch.tensor(track['classes'])
-                        tracked_det[i][6] = torch.tensor(track['tracking_id'])
+                # directories
+                source_path = Path(path)
+                video_filename = source_path.stem
+                NAME = video_filename
 
-                    # write results
-                    # Similar to MOT Challenge format, with no world x,y,z coordinates and additional class_id column
-                    # https://motchallenge.net/instructions/
-                    # bounding box is normalized to [0,1]
-                    # <frame>, <id>, <bb_left>, <bb_top>, <bb_width>, <bb_height>, <conf>, <class_id>
-                    for *xyxy, conf, cls, track_id in reversed(tracked_det):
-                        track_id = int(track_id)
-                        if SAVE_LABELS:
-                            xywh = (xyxy2xywh(torch.tensor(xyxy).view(1,4)) / gn).view(-1).tolist() # normalized xywh
-                            line = (frame, track_id, *xywh, conf, cls)
-                            with open(txt_path + '.txt', 'a') as f:
-                                line_to_write = (('%g, ' * len(line)).rstrip() % line)
-                                line_to_write = line_to_write[:-1] + '\n'
-                                f.write(line_to_write)
-                                #f.write(('%g,' * len(line)).rstrip() % line + '\n')
-                        if SAVE_ANNOTATED_IMGS or VIEW_IMG:
-                            c = int(cls)
-                            label = f"{cls_names[c]} {track_id}"
-                            annotator.box_label(xyxy, label, color=colors(c, True))
-                    if len(tracked_det):
-                        im0 = annotator.result()
-                        if VIEW_IMG:
-                            cv2.imshow(str(p), im0)
-                            cv2.waitKey(1)
+                save_dir = increment_path(Path(PROJECT) / NAME, exist_ok=True)
+                (save_dir/'labels').mkdir(parents =True, exist_ok=True)
+                clean_img_save_dir = save_dir/'clean_images'
+                (save_dir/'clean_images').mkdir(parents =True, exist_ok=True)
+                annotated_img_save_dir = save_dir/'annotated_images'
+                (save_dir/'annotated_images').mkdir(parents =True, exist_ok=True)
+
+                # inference
+                pred = model(im, augment=False, visualize=False)
+                t3 = time_sync()
+                dt[1] += t3 - t2
+
+                pred = non_max_suppression(pred, conf_thres=CONF_THRES, iou_thres=NMS_THRES, classes=CLASSES, agnostic=AGNOSTIC_NMS, max_det=MAX_DET)
+                dt[2] += time_sync() - t3
+
+
+                # merge "bicycle" and "person" classes into new "cyclist" class
+                pred_list = []
+                for pred_tensor in pred:
+                    pred_list.append(bbox_merge(pred_tensor, merge[0], merge[1], merge[3], min_iou=0.1))
+                pred = pred_list
+
+                if SAVE_ONLY_IF_FRAME_CONTAINS_CLASS is not None and len(SAVE_ONLY_IF_FRAME_CONTAINS_CLASS) > 0:
+                    if set(SAVE_ONLY_IF_FRAME_CONTAINS_CLASS).isdisjoint(set(pred[0][:, -1].cpu().numpy())):
+                        tqdm.write(f"skipping: classes in frame: {pred[0][:,-1].cpu().numpy().tolist()}")
+                        continue
+
+                # Process predictions
+                for i, det in enumerate(pred): # per image
+                    seen += 1
+                    if seen % SKIP_SAVE_FRAMES != 0:
+                        continue
+                    p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
+                    txt_path = str(save_dir/'labels'/random_video_id) + f"_{frame}"
+                    gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
+                    imc = copy.deepcopy(im0)
+                    annotator = Annotator(im0, line_width=LINE_THICKNESS, example=str(cls_names))
+                    if len(det):
+                        # rescale boxes from img_size to im0 size
+                        det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
+
+                        det_list = []
+                        for obj in det:
+                            obj_np = obj.cpu().numpy()
+                            xyxy = obj_np[:4].tolist()
+                            conf = obj_np[4]
+                            cls = int(obj_np[5])
+                            det_list.append({
+                                'bbox': xyxy,
+                                'score': conf,
+                                'class': cls,
+                            })
+
+                        iou_output = iou_tracker.update(det_list)
+                        tracked_det = torch.zeros((len(iou_output), 7))
+                        for i, track in enumerate(iou_output):
+                            tracked_det[i][0:4] = torch.tensor(track['bboxes'])
+                            tracked_det[i][4] = det[i][4]
+                            tracked_det[i][5] = torch.tensor(track['classes'])
+                            tracked_det[i][6] = torch.tensor(track['tracking_id'])
+
+                        # write results
+                        # Similar to MOT Challenge format, with no world x,y,z coordinates and additional class_id column
+                        # https://motchallenge.net/instructions/
+                        # bounding box is normalized to [0,1]
+                        # <frame>, <id>, <bb_left>, <bb_top>, <bb_width>, <bb_height>, <conf>, <class_id>
+                        for *xyxy, conf, cls, track_id in reversed(tracked_det):
+                            track_id = int(track_id)
+                            if SAVE_LABELS:
+                                xywh = (xyxy2xywh(torch.tensor(xyxy).view(1,4)) / gn).view(-1).tolist() # normalized xywh
+                                line = (frame, track_id, *xywh, conf, cls)
+                                with open(txt_path + '.txt', 'a') as f:
+                                    line_to_write = (('%g, ' * len(line)).rstrip() % line)
+                                    line_to_write = line_to_write[:-1] + '\n'
+                                    f.write(line_to_write)
+                                    #f.write(('%g,' * len(line)).rstrip() % line + '\n')
+                            if SAVE_ANNOTATED_IMGS or VIEW_IMG:
+                                c = int(cls)
+                                label = f"{cls_names[c]} {track_id}"
+                                annotator.box_label(xyxy, label, color=colors(c, True))
+                        if len(tracked_det):
+                            im0 = annotator.result()
+                            if VIEW_IMG:
+                                cv2.imshow(str(p), im0)
+                                cv2.waitKey(1)
+                            
+                            if SAVE_CLEAN_IMGS:
+                                filename = Path(random_video_id + '_' + str(int(frame))+'.jpg')
+                                cv2.imwrite(str(clean_img_save_dir/filename), imc)          
+                            tqdm.write("Saving clean image: " + str(clean_img_save_dir/filename))
+
+                            if SAVE_ANNOTATED_IMGS:
+                                filename = Path(random_video_id + '_' + str(int(frame))+'.jpg')
+                                cv2.imwrite(str(annotated_img_save_dir/filename), im0)          
+                            tqdm.write("Saving annotated image: " + str(annotated_img_save_dir/filename))
                         
-                        if SAVE_CLEAN_IMGS:
-                            filename = Path(random_video_id + '_' + str(int(frame))+'.jpg')
-                            cv2.imwrite(str(clean_img_save_dir/filename), imc)          
-                        tqdm.write("Saving clean image: " + str(clean_img_save_dir/filename))
-
-                        if SAVE_ANNOTATED_IMGS:
-                            filename = Path(random_video_id + '_' + str(int(frame))+'.jpg')
-                            cv2.imwrite(str(annotated_img_save_dir/filename), im0)          
-                        tqdm.write("Saving annotated image: " + str(annotated_img_save_dir/filename))
-                    
-                    #tqdm.write(f'{s} Done. ({t3-t2:.3f} seconds)')
+                        #tqdm.write(f'{s} Done. ({t3-t2:.3f} seconds)')
 
 if __name__ == "__main__":
     run()
