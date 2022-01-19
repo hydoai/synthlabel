@@ -1,6 +1,8 @@
 # synthlabel
 Generate accurate synthetic object detection labeled datasets, incorporating optional retroactive labeling and/or category fusion.
 
+![](assets/dataset-wall-smaller.gif)
+
 ## Ingest Videos
 
 All the input video is organized as:
@@ -31,7 +33,7 @@ python3 autolabel.py --dir=input_videos
 
 Category fusion:
 
-![](assets/person_bicycle_cyclist.png)
+![](assets/category-fusion.png)
 
 ## Validate Output
 
@@ -42,6 +44,8 @@ python3 validate_autolabels.py --dir=output
 ```
 
 ## Retrolabeling Step
+
+![](assets/retrolabeling.png)
 
 Once all the labels have been produced and saved, the retrolabeling step goes through the labels (not images) to refine the categories.
 
@@ -131,3 +135,6 @@ label-studio/labelstudio_coco_to_real_coco.sh TRAIN.zip VAL.zip
 
 
 
+---
+
+Diagrams created with diagrams.net
