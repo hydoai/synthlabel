@@ -66,7 +66,7 @@ def read_annotations(path):
         with open(detection_txt, 'r') as file:
             for line in file:
                 line = line.strip().split(',')
-                frame, track_id, x, y, w, h, confidence, class_id= line
+                frame, track_id, x, y, w, h, confidence, class_id, _= line
                 lines.append({
                     'frame': int(frame),
                     'track_id': int(track_id),
