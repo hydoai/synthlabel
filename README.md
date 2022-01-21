@@ -138,3 +138,16 @@ label-studio/labelstudio_coco_to_real_coco.sh TRAIN.zip VAL.zip
 ---
 
 Diagrams created with diagrams.net
+
+
+# Dataset Tracker
+
+CYCLIST_ONLY_RETROLABELED
++ CONF_THRES = 0.25
++ NMS_THRES = 0.45
++ AGNOSTIC_NMS = False
++ CLASSES = [0,1,2,3,5,7]
++ MERGE_CLS = (1,0,'cyclist', 80)
++ SKIP_FRAMES = 2
++ SKIP_SAVE_FRAMES = 10
++ SAVE_ONLY_IF_FRAME_CONTAINS_CLASS = [80]
