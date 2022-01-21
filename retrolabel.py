@@ -66,7 +66,7 @@ def read_annotations(path):
         with open(detection_txt, 'r') as file:
             for line in file:
                 line = line.strip().split(',')
-                frame, track_id, x, y, w, h, confidence, class_id, _= line
+                frame, track_id, x, y, w, h, confidence, class_id = line
                 lines.append({
                     'frame': int(frame),
                     'track_id': int(track_id),
@@ -94,11 +94,11 @@ def re_key_dict(d):
     return detections_by_track_id
 
 def vote_class_by_area(d):
-    # to determine 'class_id', take a vote from detections with area greater than average 
+    # to determine 'class_id', take a vote from detections with area greater than average
     # since we're using area, this will significantly skew the selection toward large detections
     for track_id, dets_in_track in d.items():
         dets_in_track.sort(key=lambda x: x['area'], reverse=True)
-        
+
         smallest_area = dets_in_track[-1]['area']
         largest_area = dets_in_track[0]['area']
         avg_area = (smallest_area + largest_area)/2
