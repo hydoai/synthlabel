@@ -53,6 +53,8 @@ Once all the labels have been produced and saved, the retrolabeling step goes th
 python3 retrolabel.py --dir=output
 ```
 
+Since retrolabeling only reads and manipulates text files, it is quite fast. Under 10 seconds for a dataset containing 40,000 images.
+
 ## Option A: Skip human labeling and prepare a synthetic dataset
 
 **Convert auto- & retrolabel output to COCO formatted dataset**
