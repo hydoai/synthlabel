@@ -101,9 +101,9 @@ def vote_class_by_area(d):
 
         smallest_area = dets_in_track[-1]['area']
         largest_area = dets_in_track[0]['area']
-        avg_area = (smallest_area + largest_area)/2
+        mid_area = (smallest_area + largest_area)/2
 
-        dets_with_suffrage = [det for det in dets_in_track if det['area'] >= avg_area]
+        dets_with_suffrage = [det for det in dets_in_track if det['area'] >= mid_area]
         count_class_ids = {}
         for det in dets_with_suffrage:
             class_id = det['class_id']

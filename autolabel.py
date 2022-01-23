@@ -125,22 +125,22 @@ def random_hash():
 def run():
     # PARAMETERS
 
-    # Directories 
+    # Directories
     WEIGHTS = ROOT/'weights/yolov5l6.pt'
     SOURCE = 'input_videos'
-    PROJECT = 'output' # save results to PROJECT/NAME 
+    PROJECT = 'output' # save results to PROJECT/NAME
     NAME = 'run' # save results to PROJECT/NAME
 
     # Inference parameters
     FP16 = True # use fp16 half precision inference
     IMGSZ = (1280,1280)
-    CONF_THRES = 0.25
+    CONF_THRES = 0.35
     NMS_THRES = 0.45
     MAX_DET = 100 # NMS iou threshold
     DEVICE = '0' # cuda device number, or 'cpu'
     AGNOSTIC_NMS = False # class-agnostic NMS
 
-    # Object class 
+    # Object class
     # Numbers are from 80 class COCO dataset (from 0 to 79)
     CLASSES = [0,1,2,3,5,7] # filter by class (None = all)
     MERGE_CLS = {
@@ -149,16 +149,16 @@ def run():
 
     # Saving synthetic labels & images
     SAVE_LABELS = True
-    SKIP_FRAMES = 2 # reduce overall input framerate by this factor to speed up inference. Recommended <= 3, because tracker needs high frame rate.
-    SKIP_SAVE_FRAMES = 10 # reduce output by this factor to reduce disk space. Modify freely. 
-    SAVE_ONLY_IF_FRAME_CONTAINS_CLASS = [80] # only save synthetic labels if this class is present in the frame. None or empty list = all classes. Use to create specialized datasets.
-    SAVE_ANNOTATED_IMGS = False # True for debugging
+    SKIP_FRAMES = 1 # reduce overall input framerate by this factor to speed up inference. Recommended <= 3, because tracker needs high frame rate.
+    SKIP_SAVE_FRAMES = 1 # reduce output by this factor to reduce disk space. Modify freely. NOTE: this skipping applies on top of SKIP_FRAMES.
+    SAVE_ONLY_IF_FRAME_CONTAINS_CLASS = [] # only save synthetic labels if this class is present in the frame. None or empty list = all classes. Use to create specialized datasets.
+    SAVE_ANNOTATED_IMGS = True # True for debugging
     SAVE_CLEAN_IMGS = True
 
     # Show output
     LINE_THICKNESS = 3 # bounding line thickness
     VIEW_IMG = False # show results on screen
-    
+
     # load models
     device = select_device(DEVICE)
     model = DetectMultiBackend(WEIGHTS, device=device, dnn=False, data=None)
@@ -191,7 +191,7 @@ def run():
         with tqdm(total=dataset.frames_in_vid()) as pbar_frames:
             for frame_index, (path, im, im0s, vid_cap, s, count_vid, total_vids, count_frame, total_frames) in enumerate(dataset):
                 # if moving onto next video
-                if count_vid != old_num_file:                 
+                if count_vid != old_num_file:
                     pbar_frames.reset()
                     old_num_file = count_vid
                     pbar_num_files.set_description(f'Video {count_vid+1}/{total_vids}')
@@ -301,17 +301,17 @@ def run():
                             if VIEW_IMG:
                                 cv2.imshow(str(p), im0)
                                 cv2.waitKey(1)
-                            
+
                             if SAVE_CLEAN_IMGS:
                                 filename = Path(random_video_id + '_' + str(int(frame))+'.jpg')
-                                cv2.imwrite(str(clean_img_save_dir/filename), imc)          
+                                cv2.imwrite(str(clean_img_save_dir/filename), imc)
                             tqdm.write("Saving clean image: " + str(clean_img_save_dir/filename))
 
                             if SAVE_ANNOTATED_IMGS:
                                 filename = Path(random_video_id + '_' + str(int(frame))+'.jpg')
-                                cv2.imwrite(str(annotated_img_save_dir/filename), im0)          
+                                cv2.imwrite(str(annotated_img_save_dir/filename), im0)
                             tqdm.write("Saving annotated image: " + str(annotated_img_save_dir/filename))
-                        
+
                         #tqdm.write(f'{s} Done. ({t3-t2:.3f} seconds)')
 
 if __name__ == "__main__":
