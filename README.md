@@ -16,7 +16,7 @@ VIDEO_DATA
 **Record new videos, then move them into `RAW`.**
 
 **Rename videos to a standardized format:**
-This renaming script calculates a checksum for the whole file, then turns hash into a pronounceable 'proquint'. Therefore, the same file will always be re-named the same filename by this script.
+This renaming script calculates a checksum for the whole file, then turns hash into a pronounceable 'proquint'. It is idempotent.
 ```
 python3 video_renamer.py --dir <VIDEO_DATA/RAW>
 ```
@@ -29,7 +29,7 @@ python3 autolabel.py --dir=input_videos
 
 + YOLOv5 detects objects
 + IOU tracker tracks objects
-+ Category Fusion merges object categories
++ Optional Bounding Box Fusion merges object categories. [Read about it on my blog](https://jasonsohn.com/writing/bbox-assignment).
 
 Category fusion:
 
@@ -53,7 +53,7 @@ Once all the labels have been produced and saved, the retrolabeling step goes th
 python3 retrolabel.py --dir=output
 ```
 
-Since retrolabeling only reads and manipulates text files, it is quite fast. Under 10 seconds for a dataset containing 40,000 images (20GB)
+[Read about retrolabeling on my blog](https://jasonsohn.com/writing/retrolabeling)
 
 ## Option A: Skip human labeling and prepare a synthetic dataset
 
@@ -141,25 +141,3 @@ label-studio/labelstudio_coco_to_real_coco.sh TRAIN.zip VAL.zip
 
 Diagrams created with diagrams.net
 
-
-# Dataset Tracker
-
-CYCLIST_ONLY_RETROLABELED
-+ CONF_THRES = 0.25
-+ NMS_THRES = 0.45
-+ AGNOSTIC_NMS = False
-+ CLASSES = [0,1,2,3,5,7]
-+ MERGE_CLS = (1,0,'cyclist', 80)
-+ SKIP_FRAMES = 2
-+ SKIP_SAVE_FRAMES = 10
-+ SAVE_ONLY_IF_FRAME_CONTAINS_CLASS = [80]
-
-FULL_RETROLABELED_180
-+ CONF_THRES = 0.35
-+ NMS_THRES = 0.45
-+ AGNOSTIC_NMS = False
-+ CLASSES = [0,1,2,3,5,7]
-+ MERGE_CLS = (1,0,'cyclist', 80)
-+ SKIP_FRAMES = 2
-+ SKIP_SAVE_FRAMES = 30
-+ SAVE_ONLY_IF_FRAME_CONTAINS_CLASS = []
