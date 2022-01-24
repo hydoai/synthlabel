@@ -53,7 +53,7 @@ Once all the labels have been produced and saved, the retrolabeling step goes th
 python3 retrolabel.py --dir=output
 ```
 
-[Read about retrolabeling on my blog](https://jasonsohn.com/writing/retrolabeling)
+Read about retrolabeling on [my blog (jasonsohn.com)](https://jasonsohn.com/writing/retrolabeling)
 
 ## Option A: Skip human labeling and prepare a synthetic dataset
 
