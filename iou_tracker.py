@@ -62,7 +62,7 @@ def associate(tracks, detections, sigma_iou):
     return track_ids, det_ids
 
 class IOUTracker:
-    def __init__(self, sigma_l=0.5, sigma_h=1.0, sigma_iou=0.3, t_min=7, ttl=1):
+    def __init__(self, sigma_l=0.3, sigma_h=1.0, sigma_iou=0.01, t_min=10, ttl=10):
         """
         Args:
             sigma_l (float) : low detection threshold

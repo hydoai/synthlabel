@@ -1,4 +1,5 @@
 import glob
+from heapq import merge
 import os
 import sys
 from pathlib import Path
@@ -34,7 +35,8 @@ from iou_tracker import IOUTracker
 class LoadImagesMoreInfo:
     # modified YOLOv5 standard dataloader to return additional info as tuple instead of just a string
     # YOLOv5 image/video dataloader, i.e. `python detect.py --source image.jpg/vid.mp4`
-    def __init__(self, path, img_size=640, stride=32, auto=True):
+    # also supports center crop
+    def __init__(self, path, img_size=640, stride=32, auto=True, center_crop=0.8):
         p = str(Path(path).resolve())  # os-agnostic absolute path
         if '*' in p:
             files = sorted(glob.glob(p, recursive=True))  # glob
@@ -63,6 +65,9 @@ class LoadImagesMoreInfo:
         assert self.nf > 0, f'No images or videos found in {p}. ' \
                             f'Supported formats are:\nimages: {IMG_FORMATS}\nvideos: {VID_FORMATS}'
 
+        self.center_crop = center_crop
+        self.random_video_ids = [random_hash() for _ in range(self.nf)]
+        self.random_video_id = None
     def __iter__(self):
         self.count = 0
         return self
@@ -74,6 +79,7 @@ class LoadImagesMoreInfo:
 
         if self.video_flag[self.count]:
             # Read video
+            self.random_video_id = self.random_video_ids[self.count]
             self.mode = 'video'
             ret_val, img0 = self.cap.read()
             while not ret_val:
@@ -96,6 +102,18 @@ class LoadImagesMoreInfo:
             assert img0 is not None, f'Image Not Found {path}'
             s = f'image {self.count}/{self.nf} {path}: '
 
+        # img0 shape: (height, width, 3)
+        # center crop img0 by self.center_crop
+        if self.center_crop < 1:
+            prev_w = img0.shape[1]
+            prev_h = img0.shape[0]
+            post_w = int(prev_w * self.center_crop)
+            post_h = int(prev_h * self.center_crop)
+            center_x = int(prev_w / 2)
+            center_y = int(prev_h / 2)
+            img0 = img0[int(center_y-post_h/2):int(center_y+post_h/2), int(center_x-post_w/2):int(center_x+post_w/2)]
+
+        #print("img0 shape: ", img0.shape)
         # Padded resize
         img = letterbox(img0, self.img_size, stride=self.stride, auto=self.auto)[0]
 
@@ -103,7 +121,7 @@ class LoadImagesMoreInfo:
         img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
         img = np.ascontiguousarray(img)
 
-        return path, img, img0, self.cap, s, self.count, self.nf, self.frame, self.frames
+        return path, img, img0, self.cap, s, self.count, self.nf, self.frame, self.frames, self.random_video_id
 
     def new_video(self, path):
         self.frame = 0
@@ -142,15 +160,15 @@ def run():
 
     # Object class
     # Numbers are from 80 class COCO dataset (from 0 to 79)
-    CLASSES = [0,1,2,3,5,7] # filter by class (None = all)
+    CLASSES = [0,1,2,5,7] # filter by class (None = all)
     MERGE_CLS = {
-        (1,0,'cyclist',80) # (main_box_category_id, sub_box_category_id, merged_category name, merged_category_id)
+        (1,0,'cyclist',80), # (main_box_category_id, sub_box_category_id, merged_category name, merged_category_id)
     } # these new classes will be given category id from 80 and above
 
     # Saving synthetic labels & images
     SAVE_LABELS = True
     SKIP_FRAMES = 1 # reduce overall input framerate by this factor to speed up inference. Recommended <= 3, because tracker needs high frame rate.
-    SKIP_SAVE_FRAMES = 1 # reduce output by this factor to reduce disk space. Modify freely. NOTE: this skipping applies on top of SKIP_FRAMES.
+    SKIP_SAVE_FRAMES = 10 # reduce output by this factor to reduce disk space. Modify freely. NOTE: this skipping applies on top of SKIP_FRAMES.
     SAVE_ONLY_IF_FRAME_CONTAINS_CLASS = [] # only save synthetic labels if this class is present in the frame. None or empty list = all classes. Use to create specialized datasets.
     SAVE_ANNOTATED_IMGS = True # True for debugging
     SAVE_CLEAN_IMGS = True
@@ -158,6 +176,9 @@ def run():
     # Show output
     LINE_THICKNESS = 3 # bounding line thickness
     VIEW_IMG = False # show results on screen
+
+    # Crop
+    CROP_RATIO = 0.6 # crop image to this ratio of original image size
 
     # load models
     device = select_device(DEVICE)
@@ -176,10 +197,9 @@ def run():
         model.model.half() if FP16 else model.model.float()
 
     # Dataloader
-    dataset = LoadImagesMoreInfo(SOURCE, img_size=imgsz, stride=stride, auto=pt)
+    dataset = LoadImagesMoreInfo(SOURCE, img_size=imgsz, stride=stride, auto=pt, center_crop=CROP_RATIO)
     bs = 1 # batch_size
 
-    random_video_id = random_hash()
 
     iou_tracker = IOUTracker()
 
@@ -188,8 +208,9 @@ def run():
     dt, seen = [0.0, 0.0, 0.0], 0
     with tqdm(total=len(dataset)) as pbar_num_files:
         old_num_file = 0
+        
         with tqdm(total=dataset.frames_in_vid()) as pbar_frames:
-            for frame_index, (path, im, im0s, vid_cap, s, count_vid, total_vids, count_frame, total_frames) in enumerate(dataset):
+            for frame_index, (path, im, im0s, vid_cap, s, count_vid, total_vids, count_frame, total_frames, random_video_id) in enumerate(dataset):
                 # if moving onto next video
                 if count_vid != old_num_file:
                     pbar_frames.reset()
@@ -203,6 +224,7 @@ def run():
 
                 t1 = time_sync()
                 im = torch.from_numpy(im).to(device)
+
                 im = im.half() if FP16 else im.float()
                 im /= 255
                 if len(im.shape) == 3:
@@ -246,8 +268,7 @@ def run():
                 # Process predictions
                 for i, det in enumerate(pred): # per image
                     seen += 1
-                    if seen % SKIP_SAVE_FRAMES != 0:
-                        continue
+                    
                     p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
                     txt_path = str(save_dir/'labels'/random_video_id) + f"_{frame}"
                     gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
@@ -270,6 +291,12 @@ def run():
                             })
 
                         iou_output = iou_tracker.update(det_list)
+
+                        # update tracker before 'continuing' on this loop
+                        # if we do this at the beginning of the loop, the tracker gets no useful data and therefore cannot track.
+                        if seen % SKIP_SAVE_FRAMES != 0:
+                            continue
+
                         tracked_det = torch.zeros((len(iou_output), 7))
                         for i, track in enumerate(iou_output):
                             tracked_det[i][0:4] = torch.tensor(track['bboxes'])
