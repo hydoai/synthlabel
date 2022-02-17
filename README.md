@@ -68,7 +68,7 @@ Outputs are saved to `label-studio/finished` directory.
 **Compress contents of `finished`**:
 ```
 cd label-studio/finished
-zip -r <NAME_OF_DATASET>.zip images result.json
+tar -cvf <NAME_OF_DATASET>.tar images result.json
 ```
 ## Option B: Import into Label Studio for Assisted Human Labeling
 
