@@ -168,9 +168,9 @@ def run():
     # Saving synthetic labels & images
     SAVE_LABELS = True
     SKIP_FRAMES = 1 # reduce overall input framerate by this factor to speed up inference. Recommended <= 3, because tracker needs high frame rate.
-    SKIP_SAVE_FRAMES = 10 # reduce output by this factor to reduce disk space. Modify freely. NOTE: this skipping applies on top of SKIP_FRAMES.
+    SKIP_SAVE_FRAMES = 6 # reduce output by this factor to reduce disk space. Modify freely. NOTE: this skipping applies on top of SKIP_FRAMES.
     SAVE_ONLY_IF_FRAME_CONTAINS_CLASS = [] # only save synthetic labels if this class is present in the frame. None or empty list = all classes. Use to create specialized datasets.
-    SAVE_ANNOTATED_IMGS = True # True for debugging
+    SAVE_ANNOTATED_IMGS = False # True for debugging
     SAVE_CLEAN_IMGS = True
 
     # Show output

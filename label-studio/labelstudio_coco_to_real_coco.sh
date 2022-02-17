@@ -9,8 +9,8 @@ mkdir COCO
 mkdir COCO/unzipped_train
 mkdir COCO/unzipped_val 
 
-unzip $1 -d COCO/unzipped_train
-unzip $2 -d COCO/unzipped_val
+tar -xvf $1 -C COCO/unzipped_train
+tar -xvf $2 -C COCO/unzipped_val
 
 cd COCO
 
