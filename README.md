@@ -63,11 +63,11 @@ Read about retrolabeling on [my blog (jasonsohn.com)](https://jasonsohn.com/writ
 python3 skip_handlabel.py
 ```
 
-Outputs are saved to `label-studio/finished` directory.
+Outputs are saved to `finished` directory.
 
 **Compress contents of `finished`**:
 ```
-cd label-studio/finished
+cd finished
 tar -cvf <NAME_OF_DATASET>.tar images result.json
 ```
 ## Option B: Import into Label Studio for Assisted Human Labeling
